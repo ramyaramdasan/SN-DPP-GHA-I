@@ -1,0 +1,71 @@
+name: ServiceNow GitHub Actions Demo
+
+on:
+  pull_request:
+  push:
+    branches:
+      - master
+
+jobs:
+  build:
+    # Purpose of this job is to Apply Remote Changes for the branch triggering 
+    # the pipeline build to the Dev instance, then publish the application to 
+    # app repo using the template versioning format. 
+    name: Deploy to Test
+    runs-on: ubuntu-latest
+    # Below line can be used to set conditionals for modifying your pipeline as needed.
+    # if: ${{ github.event_name == 'pull_request'}}
+
+    steps:
+
+      - name: ServiceNow CI/CD Apply Changes
+        uses: ServiceNow/sncicd-apply-changes@1.0.0
+        env:
+          snowUsername: ${{ secrets.SN_USERNAME }}
+          snowPassword: ${{ secrets.SN_PASSWORD }}
+          snowSourceInstance: ${{ secrets.SN_TEST_INSTANCE }}
+          appSysID: ${{ secrets.SN_APP_SYSID }}
+
+  test:
+    # Purpose of this job is to Install App from the app repo for the version 
+    # published in the build job to a Test instance, then run an ATF Test Suite 
+    # associated with the app. If Test Suite fails, the app should be Rolled Back 
+    # to clean up the persistent Test environment. 
+    needs: build
+    name: Run ATF in Test
+    runs-on: ubuntu-latest
+    # Below line can be used to set conditionals for modifying your pipeline as needed.
+    # if: ${{ github.event_name == 'pull_request'}}
+    
+    steps:
+
+      - name: ServiceNow CI/CD Run ATF Test Suite
+        uses: ServiceNow/sncicd-tests-run@1.0.0
+        with:
+          testSuiteSysId: ${{ secrets.SN_ATFTESTSUITE_SYSID }}
+        env:
+          snowUsername: ${{ secrets.SN_USERNAME }}
+          snowPassword: ${{ secrets.SN_PASSWORD }}
+          snowInstallInstance: ${{ secrets.SN_TEST_INSTANCE }}
+
+  deployprod:
+    # Purpose of this job is to Install App to a Prod instance. This should only 
+    # trigger if the feature branch has been merged to master after a successfully 
+    # completed pull request, hence the conditional for push to master. In other words,
+    # the first two jobs run on CI, then all three jobs run on CD. 
+    needs: test
+    name: Publish to App Repo
+    runs-on: ubuntu-latest
+    if: ${{ github.event_name == 'push' && github.ref == 'refs/heads/master' }}
+    steps:
+    
+      - name: ServiceNow CI/CD Publish App
+        id: publish_app
+        uses: ServiceNow/sncicd-publish-app@1.0.0
+        with:
+          versionFormat: autodetect
+        env:
+          snowUsername: ${{ secrets.SN_USERNAME }}
+          snowPassword: ${{ secrets.SN_PASSWORD }}
+          snowSourceInstance: ${{ secrets.SN_DEV_INSTANCE }}
+          appSysID: ${{ secrets.SN_APP_SYSID }}
