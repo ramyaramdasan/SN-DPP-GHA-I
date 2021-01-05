@@ -7,7 +7,7 @@ on:
 
 jobs:
   createPullRequest:
-    if: "!contains(github.event.head_commit.message, 'don't deploy')"
+    if: "!contains(github.event.head_commit.message, 'do not deploy')"
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v2
