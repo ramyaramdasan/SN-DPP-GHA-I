@@ -11,7 +11,7 @@ jobs:
     # the pipeline build to the Dev instance, then publish the application to 
     # app repo using the template versioning format. 
     name: Deploy to Test
-    if: "!contains(github.event.head_commit.message, 'do not deploy')"
+    #if: "!contains(github.event.head_commit.message, 'do not deploy')"
     runs-on: ubuntu-latest
     # Below line can be used to set conditionals for modifying your pipeline as needed.
     # if: ${{ github.event_name == 'pull_request'}}
@@ -33,6 +33,7 @@ jobs:
     # to clean up the persistent Test environment. 
     needs: build
     name: Run ATF in Test
+    if: "!contains(github.event.head_commit.message, 'do not deploy')"
     runs-on: ubuntu-latest
     # Below line can be used to set conditionals for modifying your pipeline as needed.
     # if: ${{ github.event_name == 'pull_request'}}
